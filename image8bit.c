@@ -375,7 +375,7 @@ int ImageValidRect(Image img, int x, int y, int w, int h) { ///
 static inline int G(Image img, int x, int y) {
   int index;
   // Insert your code here!
-  int index = x + y * img->width;
+  double index = x + y * img->width;
   assert (0 <= index && index < img->width*img->height);
   return index;
 }
