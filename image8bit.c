@@ -653,8 +653,9 @@ Image ImageBlur(Image img, int dx, int dy) { ///
       int NPixel=0;
       for(int k=0;k <=dx;k++){
         for(int l=0;l<=dy;l++){
-          sum+=ImageGetPixel(imageOriginal,i+k,j+l);
-          NPixel++;
+          if (ImageGetPixel(img,k,l)!=0){}
+            sum+=ImageGetPixel(imageOriginal,i+k,j+l);
+            NPixel++;
         }
       }
       uint8 MediaPixel;
