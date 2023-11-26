@@ -10,11 +10,12 @@
 /// 2013, 2023
 
 // Student authors (fill in below):
-// NMec:  Name:
+// NMec:  108002 Name: Adriana Rocha
+// NMec:  100006 Name: Joana Silva
 // 
 // 
 // 
-// Date:
+// Date:  23/11/2023
 //
 
 #include "image8bit.h"
@@ -147,6 +148,7 @@ void ImageInit(void) { ///
   InstrCalibrate();
   InstrName[0] = "pixmem";  // InstrCount[0] will count pixel array acesses
   // Name other counters here...
+
   
 }
 
@@ -172,6 +174,19 @@ Image ImageCreate(int width, int height, uint8 maxval) { ///
   assert (height >= 0);
   assert (0 < maxval && maxval <= PixMax);
   // Insert your code here!
+
+  Image img = (Image) malloc(sizeof(struct image));
+  if (img==NULL){
+    char* errorMessage = "A imagem não foi criada por existir falta de memória";
+    errno = ENOMEM;
+    return NULL;
+  }
+  for (int i=0;i<=width-1;i++){
+    for (int j=0;j<=height-1;j++){
+      ImageSetPixel(img, i,j,maxval);
+    }
+  }
+  return img;
 }
 
 /// Destroy the image pointed to by (*imgp).
@@ -182,6 +197,11 @@ Image ImageCreate(int width, int height, uint8 maxval) { ///
 void ImageDestroy(Image* imgp) { ///
   assert (imgp != NULL);
   // Insert your code here!
+  if (*imgp != NULL) {
+    free((*imgp)->pixel);
+    free(*imgp);
+    *imgp = NULL;
+  }
 }
 
 
@@ -294,6 +314,29 @@ int ImageMaxval(Image img) { ///
 void ImageStats(Image img, uint8* min, uint8* max) { ///
   assert (img != NULL);
   // Insert your code here!
+
+  int width = img->width;
+  int height = img->height;
+
+  uint8 minVal = PixMax; // O minVal fica igual ao Valor Maximo do Pixel
+  uint8 maxVal = 0; // O maáximo inicial == 0
+  // Percorre a altura e largura toda, para verificar se o maxVal e o minVal são os valores maximos e minimos de cinza na imagem, respetivamente
+  for (int i = 0; i < height; i++) {
+      for (int j = 0; j < width; j++) {
+        uint8 pixel = ImageGetPixel(img, j, i);
+
+        if (pixel < minVal) {
+          minVal = pixel;
+        }
+
+        if (pixel > maxVal) {
+          maxVal = pixel;
+        }
+      }
+  }  
+  // Guarda os valores na memŕia,na posição do valor min e max
+  *min = minVal;
+  *max = maxVal;
 }
 
 /// Check if pixel position (x,y) is inside img.
@@ -306,6 +349,17 @@ int ImageValidPos(Image img, int x, int y) { ///
 int ImageValidRect(Image img, int x, int y, int w, int h) { ///
   assert (img != NULL);
   // Insert your code here!
+  // Verificar se as coordenadas x e y pertencem à imagem, ou seja, se estão dentro da imagem
+  if (x < 0 || x >= img->width || y < 0 || y >= img->height) {
+    return 0;
+  }
+
+  // Verificar se as coordenadas x+w e y+h pertencem à imagem, ou seja, se estão dentro da imagem
+  if (x + w > img->width || y + h > img->height) {
+    return 0;
+  }
+
+  return 1;
 }
 
 /// Pixel get & set operations
@@ -321,6 +375,7 @@ int ImageValidRect(Image img, int x, int y, int w, int h) { ///
 static inline int G(Image img, int x, int y) {
   int index;
   // Insert your code here!
+  int index = x + y * img->width;
   assert (0 <= index && index < img->width*img->height);
   return index;
 }
@@ -356,6 +411,15 @@ void ImageSetPixel(Image img, int x, int y, uint8 level) { ///
 void ImageNegative(Image img) { ///
   assert (img != NULL);
   // Insert your code here!
+
+  uint8 maxval = ImageMaxval(img);
+  for (int i = 0; i < img->height; i++) {
+    for (int j = 0; j < img->width; j++) {
+      // Subtract each pixel value from maxval.
+      ImageSetPixel(img, j, i, maxval - ImageGetPixel(img, j, i));
+    }
+  }
+  // Este método verifica qual o nivel maior de cinza na img e percorre a largura e o comprimento da imagem, e verifica qual é o menor nivel dos pixeis, porfim substitui esse valor nos pixeis
 }
 
 /// Apply threshold to image.
@@ -364,6 +428,16 @@ void ImageNegative(Image img) { ///
 void ImageThreshold(Image img, uint8 thr) { ///
   assert (img != NULL);
   // Insert your code here!
+
+  uint8 maxval = ImageMaxval(img);
+  for (int i = 0; i < img->height; i++) {
+    for (int j = 0; j < img->width; j++) {
+      uint8 pixel = ImageGetPixel(img, j, i);
+      if (pixel < thr) {ImageSetPixel(img, j, i, 0);}
+      else {ImageSetPixel(img, j, i, maxval);}
+    }
+  }
+  // Esta função guarda na variável maxVal o nivel máximo de cinza da foto. De seguida, percorre a largura e o comprimento da imagem, e compara cada nivel de pixel é menor do que o thr, valor fornecido quando se chama o método  
 }
 
 /// Brighten image by a factor.
@@ -372,8 +446,19 @@ void ImageThreshold(Image img, uint8 thr) { ///
 /// darken the image if factor<1.0.
 void ImageBrighten(Image img, double factor) { ///
   assert (img != NULL);
-  // ? assert (factor >= 0.0);
+  assert (factor >= 0.0);
   // Insert your code here!
+  uint8 maxval = ImageMaxval(img);
+  for (int i = 0; i < img->height; i++) {
+    for (int j = 0; j < img->width; j++) {
+      uint8 pixel = ImageGetPixel(img, j, i);
+      pixel = pixel * factor;
+      if (pixel > maxval) {pixel = maxval;}
+      ImageSetPixel(img, j, i, pixel);
+    }
+ }
+ // Esta função guarda na variável maxVal o nivel máximo de cinza da foto. De seguida, percorre a largura e o comprimento da imagem, e multiplica cada nivel do pixel pelo factor, valor fornecido quando se chama o ,étodo
+
 }
 
 
@@ -401,8 +486,19 @@ void ImageBrighten(Image img, double factor) { ///
 Image ImageRotate(Image img) { ///
   assert (img != NULL);
   // Insert your code here!
+  uint8 maxval = ImageMaxval(img);
+  Image Rodada = ImageCreate(img->width, img->height, maxval);
+  if (Rodada == NULL) {
+    return NULL;
+  }
+  for (int i = 0; i < img->height; i++) {
+    for (int j = 0; j < img->width; j++) {
+      ImageSetPixel(Rodada, j, i, ImageGetPixel(img, i, img->height-1-j));
+    }
+  }
+  return Rodada;
+  //  Esta função guarda na variável maxVal o nivel máximo de cinza da foto.De seguida, percorre a imagem na sua largura e comprimento, e "roda" os pixeis, 90º no sentido dos ponteiros do relógio. Guarda a imagem numa variável do tipo imagem, mas com o nome Rodada, para não substituir a imagem original
 }
-
 /// Mirror an image = flip left-right.
 /// Returns a mirrored version of the image.
 /// Ensures: The original img is not modified.
@@ -413,6 +509,18 @@ Image ImageRotate(Image img) { ///
 Image ImageMirror(Image img) { ///
   assert (img != NULL);
   // Insert your code here!
+
+  Image Espelhada = ImageCreate(img->width, img->height, img->maxval);
+  if (Espelhada == NULL) {
+    return NULL;
+  }
+  for (int i = 0; i < img->height; i++) {
+    for (int j = 0; j < img->width; j++) {
+      ImageSetPixel(Espelhada, j, i, ImageGetPixel(img, img->width-1-j, i));
+    }
+  }
+  return Espelhada;
+  // Esta função é executada como a função ImageRotate, mas ao invés de rodar a imagem, vira a imagem da esquerda para a direita. A imagem final é do tipo Image, com o nome Espelhada
 }
 
 /// Crop a rectangular subimage from img.
@@ -431,6 +539,16 @@ Image ImageCrop(Image img, int x, int y, int w, int h) { ///
   assert (img != NULL);
   assert (ImageValidRect(img, x, y, w, h));
   // Insert your code here!
+
+  Image ImgCortada = ImageCreate(w, h, img->maxval);
+  if (ImgCortada == NULL) {
+    return NULL;
+  }
+
+  for (int i = 0; i < h; i++) {
+    for (int j = 0; j < w; j++) {ImageSetPixel(ImgCortada, j, i, ImageGetPixel(img, x+j, y+i));}}
+  return ImgCortada;
+  // Esta função recorta a imagem, com o largura w e comprimento h. Percorre a largura e o comprimento da imagem original, e guarda os valores dos pixeis "novos" na ImagemCortada, a largura e o comprimento do pixel em que os for estão ficam com as coordenadas dos pixeis x+j e y+i
 }
 
 
@@ -445,6 +563,10 @@ void ImagePaste(Image img1, int x, int y, Image img2) { ///
   assert (img2 != NULL);
   assert (ImageValidRect(img1, x, y, img2->width, img2->height));
   // Insert your code here!
+
+  for (int i = 0; i < img2->height; i++) {
+    for (int j = 0; j < img2->width; j++) {ImageSetPixel(img1, x+j, y+i, ImageGetPixel(img2, j, i));}}
+  // Esta função percorre todos os pixeis da img1 e guarda os seus valores nas respetivas coordenadas da img2
 }
 
 /// Blend an image into a larger image.
@@ -458,6 +580,16 @@ void ImageBlend(Image img1, int x, int y, Image img2, double alpha) { ///
   assert (img2 != NULL);
   assert (ImageValidRect(img1, x, y, img2->width, img2->height));
   // Insert your code here!
+
+  for (int i = 0; i < img2->height; i++) {
+    for (int j = 0; j < img2->width; j++) {
+      int PixelImg1 = ImageGetPixel(img1, x+j, y+i);
+      int PixelImg2 = ImageGetPixel(img2, j, i);
+      int PixelFinal = (int)(((1 - alpha) * PixelImg1) + (alpha * PixelImg2));
+      ImageSetPixel(img1, x+j, y+i, PixelFinal);
+    }
+  }
+  //Esta função percorre o comprimento e a largura da img2 e guarda nas variáveis PixelImg1 o pixel da img1 com as coordenadas x+j e y+i, na variavel PixelImg2 guarda o pixel da img 2 com as coordenadas j e i. Calcula-se o valor do pixel final e guarda se na variavel PixelFinal e substirui se se o valor desse pixel na img1, nas coordenadas x+j e y+i
 }
 
 /// Compare an image to a subimage of a larger image.
@@ -468,6 +600,17 @@ int ImageMatchSubImage(Image img1, int x, int y, Image img2) { ///
   assert (img2 != NULL);
   assert (ImageValidPos(img1, x, y));
   // Insert your code here!
+
+  for (int i = 0; i < img2->height; i++) {
+    for (int j = 0; j < img2->width; j++) {
+      int PixelImg1 = ImageGetPixel(img1, x+j, y+i);
+      int PixelImg2 = ImageGetPixel(img2, j, i);
+      if (PixelImg1 != PixelImg2) {
+        return 0;
+      }
+    }}
+  return 1;
+  // Esta funcao verifica se as duas imagens, img1 e img2 sao iguais, comparando os valores dos pixeis, um a um. Percorre o comprimento e a largura da img2 e vai buscar os pixeis da img1 nas coordenadas do pixel da img2, por fim compara. Se forem iguais dá return 1, senão dá return 0
 }
 
 /// Locate a subimage inside another image.
@@ -478,6 +621,16 @@ int ImageLocateSubImage(Image img1, int* px, int* py, Image img2) { ///
   assert (img1 != NULL);
   assert (img2 != NULL);
   // Insert your code here!
+  
+  for (int x = 0; x <= img1->width - img2->width; x++) {
+    for (int y = 0; y <= img1->height - img2->height; y++) {
+      if (ImageMatchSubImage(img1, x, y, img2)) {
+        *px = x;
+        *py = y;
+        return 1;}}
+    }
+  return 0;
+  // Esta função percorre a largura e o comprimento da img1, e verifica se o pixel é igual ao pixel com as mesmas coordenadas na img2. Se forem iguais, guarda nos ponteiros px e py o valor do x e y respetivo do ciclo for. Se nao forem iguais dá return 0.
 }
 
 
@@ -487,7 +640,30 @@ int ImageLocateSubImage(Image img1, int* px, int* py, Image img2) { ///
 /// Each pixel is substituted by the mean of the pixels in the rectangle
 /// [x-dx, x+dx]x[y-dy, y+dy].
 /// The image is changed in-place.
-void ImageBlur(Image img, int dx, int dy) { ///
+Image ImageBlur(Image img, int dx, int dy) { ///
   // Insert your code here!
-}
+  assert (img != NULL);
+  assert (dx >= 0);
+  assert (dy >= 0);
+  Image imageOriginal = img;
+  int width = img->width;
+  int height = img->height;
+  for(int i = 0;i<=width;i++){
+    for(int j = 0;j<=height;j++){
+      int sum=0;
+      int NPixel=0;
+      for(int k=0;k <=dx;k++){
+        for(int l=0;l<=dy;l++){
+          sum+=ImageGetPixel(imageOriginal,i+k,j+l);
+          NPixel++;
+        }
+      }
+      uint8 MediaPixel;
+      MediaPixel=sum/NPixel;
+      ImageSetPixel(imageOriginal, i, j, MediaPixel);
 
+    }
+  };
+  return imageOriginal;  
+  // Esta funcao percorre o comprimento, largura, dx e dy da img e calcula a media do valor dos pixeis que estao na "área" x-dx, x+dx,y-dy,y+dy e guarda na variavel MediaPixel. 
+}
